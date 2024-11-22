@@ -25,12 +25,16 @@ def get_aircraft():
     
 @app.route('/')
 def map_view():
-    map_center = [41.1579, -8.629]  #Porto, Portugal
-    m = folium.Map(location=map_center, zoom_start=7)
+    aircraft_data = Aircraft.query.all()
 
-    map_html = m._repr_html_()
+    aircrafts = [{
+        "flight": a.flight,
+        "latitude": a.latitude,
+        "longitude": a.longitude,
+        "altitude": a.altitude
+    } for a in aircraft_data]
 
-    return render_template('map.html', map_html=map_html)
+    return render_template('map.html', aircraft_data=aircrafts)
 
 if __name__ == '__main__':
     start_background_fetch(app)
