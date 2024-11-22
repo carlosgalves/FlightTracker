@@ -1,5 +1,6 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 from api.data_manager import init_db, Aircraft, start_background_fetch
+import folium
 
 app = Flask(__name__)
 
@@ -21,6 +22,15 @@ def get_aircraft():
         "altitude": a.altitude,
         "ground_speed": a.ground_speed
     } for a in aircrafts])
+    
+@app.route('/')
+def map_view():
+    map_center = [41.1579, -8.629]  #Porto, Portugal
+    m = folium.Map(location=map_center, zoom_start=7)
+
+    map_html = m._repr_html_()
+
+    return render_template('map.html', map_html=map_html)
 
 if __name__ == '__main__':
     start_background_fetch(app)
