@@ -47,8 +47,11 @@
             aircrafts.forEach(function(aircraft) {
                 if (aircraft.latitude && aircraft.longitude) {
                     var marker = L.marker([parseFloat(aircraft.latitude), parseFloat(aircraft.longitude)])
-                        .bindPopup("Flight: " + aircraft.flight + "<br>Altitude: " + aircraft.altitude)
-                        .addTo(map);
+                    .bindTooltip("Flight: " + aircraft.flight + "<br>Altitude: " + aircraft.altitude, {
+                        permanent: false,
+                        sticky: false
+                    })
+                    .addTo(map);
 
                     markers.push(marker);
                 }
