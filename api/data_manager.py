@@ -4,7 +4,7 @@ from threading import Thread
 from flask_sqlalchemy import SQLAlchemy
 from flask import current_app
 
-FETCH_INTERVAL = 5 #segundos
+FETCH_INTERVAL = 1 #segundos
 
 db = SQLAlchemy()
 
@@ -34,19 +34,28 @@ def fetch_and_save_aircraft():
         data = response.json()
 
         with current_app.app_context():
-            Aircraft.query.delete()
 
             for aircraft in data.get('aircraft', []):
-                new_aircraft = Aircraft(
-                    hex=aircraft.get('hex'),
-                    flight=aircraft.get('flight'),
-                    latitude=aircraft.get('lat'),
-                    longitude=aircraft.get('lon'),
-                    altitude=aircraft.get('alt_baro', 'N/A'),
-                    ground_speed=aircraft.get('gs'),
-                    squawk=aircraft.get('squawk')
-                )
-                db.session.add(new_aircraft)
+                existing_aircraft = Aircraft.query.get(aircraft.get('hex'))
+                
+                if existing_aircraft:
+                    existing_aircraft.flight = aircraft.get('flight')
+                    existing_aircraft.latitude = aircraft.get('lat')
+                    existing_aircraft.longitude = aircraft.get('lon')
+                    existing_aircraft.altitude = aircraft.get('alt_baro', 'N/A')
+                    existing_aircraft.ground_speed = aircraft.get('gs')
+                    existing_aircraft.squawk = aircraft.get('squawk')
+                else:
+                    new_aircraft = Aircraft(
+                        hex=aircraft.get('hex'),
+                        flight=aircraft.get('flight'),
+                        latitude=aircraft.get('lat'),
+                        longitude=aircraft.get('lon'),
+                        altitude=aircraft.get('alt_baro', 'N/A'),
+                        ground_speed=aircraft.get('gs'),
+                        squawk=aircraft.get('squawk')
+                    )
+                    db.session.add(new_aircraft)
 
             db.session.commit()
 

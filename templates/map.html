@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://www.kryogenix.org/code/browser/sorttable/sorttable.js"></script>
     <style>
         html, body {
             height: 100%;
@@ -16,12 +17,70 @@
         #map {
             width: 100%;
             height: 100%;
+            position: absolute;
+        }
+        #data-panel {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 500px;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.568);
+            overflow-y: auto;
+            border-left: 1px solid #ccc;
+            display: none;
+            z-index: 1000;
+            transition: transform 0.3s ease-in-out;
+        }
+        #data-panel.visible {
+            display: block;
+        }
+        #toggle-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1100;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 50px 0;
+            background-color: #ccc;
+        }
+        th, td {
+            border: 1px solid #000000;
+            padding: 8px;
+        }
+        th {
+            background-color: #2474c0;
+            text-align: left;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 
     <div id="map"></div>
+
+    <button id="toggle-button">Show/Hide Data</button>
+    <div id="data-panel">
+        <table id="aircraft-table" class="sortable">
+            <thead>
+                <tr class="item">
+                    <th >Flight</th>
+                    <th >Altitude</th>
+                    <th >Latitude</th>
+                    <th >Longitude</th>
+                    <th >Ground Speed</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
 
     <script>
         var map = L.map('map').setView([41.1579, -8.629], 7);  // Porto, Portugal
@@ -30,13 +89,11 @@
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-
-        var aircrafts = {{ aircraft_data|tojson }};
         var markers = [];
 
         function clearMarkers() {
             markers.forEach(function(marker) {
-                marker.remove();
+                map.removeLayer(marker);
             });
             markers = [];
         }
@@ -47,24 +104,50 @@
             aircrafts.forEach(function(aircraft) {
                 if (aircraft.latitude && aircraft.longitude) {
                     var marker = L.marker([parseFloat(aircraft.latitude), parseFloat(aircraft.longitude)])
-                        .bindPopup("Flight: " + aircraft.flight + "<br>Altitude: " + aircraft.altitude)
+                        .bindTooltip("Flight: " + aircraft.flight + "<br>Altitude: " + aircraft.altitude, {
+                            permanent: false,
+                            sticky: false
+                        })
                         .addTo(map);
-
                     markers.push(marker);
                 }
             });
         }
 
-        function fetchAircraftData() {
-            $.get("/data", function(data) {
-                addMarkers(data);
+        function updateTable(aircrafts) {
+            var tbody = document.querySelector("#aircraft-table tbody");
+            tbody.innerHTML = ""; // Clear existing rows
+
+            aircrafts.forEach(function(aircraft) {
+                var row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${aircraft.flight || 'N/A'}</td>
+                    <td>${aircraft.altitude || 'N/A'}</td>
+                    <td>${aircraft.latitude || 'N/A'}</td>
+                    <td>${aircraft.longitude || 'N/A'}</td>
+                    <td>${aircraft.ground_speed || 'N/A'}</td>
+                `;
+                tbody.appendChild(row);
             });
         }
 
-        fetchAircraftData();
+        function updateData() {
+            fetch('/data')
+                .then(response => response.json())
+                .then(data => {
+                    addMarkers(data);
+                    updateTable(data);
+                })
+                .catch(error => console.error("Error fetching aircraft data:", error));
+        }
 
-        setInterval(fetchAircraftData, 500);
 
+        setInterval(updateData, 500);
+
+        document.getElementById("toggle-button").addEventListener("click", function() {
+            var dataPanel = document.getElementById("data-panel");
+            dataPanel.classList.toggle("visible");
+        });
     </script>
 
 </body>
