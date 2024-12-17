@@ -67,15 +67,15 @@
     <div id="map"></div>
 
     <button id="toggle-button">Show/Hide Data</button>
-    <div id="data-panel">
-        <table id="aircraft-table" class="sortable">
+    <div id="data-panel" style="display: none;">
+        <table id="aircraft-table">
             <thead>
-                <tr class="item">
-                    <th >Flight</th>
-                    <th >Altitude</th>
-                    <th >Latitude</th>
-                    <th >Longitude</th>
-                    <th >Ground Speed</th>
+                <tr>
+                    <th>Flight</th>
+                    <th>Altitude</th>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                    <th>Ground Speed</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -114,20 +114,43 @@
             });
         }
 
-        function updateTable(aircrafts) {
-            var tbody = document.querySelector("#aircraft-table tbody");
-            tbody.innerHTML = ""; // Clear existing rows
+        let currentSortColumn = null;
+        let currentSortDirection = 'asc';
 
-            aircrafts.forEach(function(aircraft) {
-                var row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${aircraft.flight || 'N/A'}</td>
-                    <td>${aircraft.altitude || 'N/A'}</td>
-                    <td>${aircraft.latitude || 'N/A'}</td>
-                    <td>${aircraft.longitude || 'N/A'}</td>
-                    <td>${aircraft.ground_speed || 'N/A'}</td>
-                `;
-                tbody.appendChild(row);
+        function sortData(data, column, direction) {
+            return data.sort((a, b) => {
+                let valA = a[column] || '';
+                let valB = b[column] || '';
+
+                if (typeof valA === 'string') valA = valA.toLowerCase();
+                if (typeof valB === 'string') valB = valB.toLowerCase();
+
+                if (direction === 'asc') {
+                    return valA > valB ? 1 : valA < valB ? -1 : 0;
+                } else {
+                    return valA < valB ? 1 : valA > valB ? -1 : 0;
+                }
+            });
+        } 
+
+        function updateTable(aircrafts) {
+            if (currentSortColumn) {
+                aircrafts = sortData(aircrafts, currentSortColumn, currentSortDirection);
+            }
+
+            const tbody = document.querySelector("#aircraft-table tbody");
+            tbody.innerHTML = "";
+
+            aircrafts.forEach(aircraft => {
+                const row = `
+                    <tr>
+                        <td>${aircraft.flight || 'N/A'}</td>
+                        <td>${aircraft.altitude || 'N/A'}</td>
+                        <td>${aircraft.latitude || 'N/A'}</td>
+                        <td>${aircraft.longitude || 'N/A'}</td>
+                        <td>${aircraft.ground_speed || 'N/A'}</td>
+                    </tr>`;
+                tbody.insertAdjacentHTML('beforeend', row);
             });
         }
 
@@ -138,15 +161,30 @@
                     addMarkers(data);
                     updateTable(data);
                 })
-                .catch(error => console.error("Error fetching aircraft data:", error));
+                .catch(console.error);
         }
 
+        document.querySelectorAll("#aircraft-table th").forEach((header, index) => {
+            header.addEventListener("click", () => {
+                const columns = ["flight", "altitude", "latitude", "longitude", "ground_speed"];
+                const column = columns[index];
+
+                if (currentSortColumn === column) {
+                    currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSortColumn = column;
+                    currentSortDirection = 'asc';
+                }
+
+                updateData();
+            });
+        });
 
         setInterval(updateData, 500);
 
-        document.getElementById("toggle-button").addEventListener("click", function() {
-            var dataPanel = document.getElementById("data-panel");
-            dataPanel.classList.toggle("visible");
+        document.getElementById("toggle-button").addEventListener("click", () => {
+            const dataPanel = document.getElementById("data-panel");
+            dataPanel.style.display = dataPanel.style.display === "none" ? "block" : "none";
         });
     </script>
 
