@@ -34,7 +34,7 @@ def map_view():
         "altitude": a.altitude
     } for a in aircraft_data]
 
-    return render_template('map.html', aircraft_data=aircrafts)
+    return render_template('index.html', aircraft_data=aircrafts)
 
 if __name__ == '__main__':
     start_background_fetch(app)
